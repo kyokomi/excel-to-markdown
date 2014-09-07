@@ -10,7 +10,7 @@ coming soon ...
 
 ### Input `.xlsx`
 
-[sample](https://github.com/kyokomi/excel-to-markdown/blob/master/test/excel/sample/sample.xlsx)
+[sample](https://github.com/kyokomi/excel-to-markdown/blob/master/test/excel/sample.xlsx)
 
 ![/excel-to-markdown_demo1.png](https://dl.dropbox.com/u/49084962/excel-to-markdown_demo1.png)
 
