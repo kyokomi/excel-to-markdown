@@ -16,7 +16,7 @@ coming soon ...
 
 ### Output `.md`
 
-[sample](https://github.com/kyokomi/excel-to-markdown/blob/master/test/build/sample/sheert1.md)
+[sample](https://github.com/kyokomi/excel-to-markdown/blob/master/test/build/sample/sheet1.md)
 
 ```
 # GoでExcelをMarkdownにする
