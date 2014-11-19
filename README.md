@@ -2,6 +2,12 @@
 
 ====================================
 
+## Description
+
+used at GitHub, the format is GitHub-Flavoured Markdown; see:
+
+https://help.github.com/articles/github-flavored-markdown/
+
 ## Usage
 
 ### Building
