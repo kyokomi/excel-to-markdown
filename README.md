@@ -4,7 +4,15 @@
 
 ## Usage
 
-coming soon ...
+### Building
+
+ * `export GOPATH=<CURRENT_PATH>`
+ * `go get` to download the github dependency
+ * `go build` to build the executable
+
+### Running
+
+You need to put your excel file inside test/ (replace or get rid of sample.xlsx), then run `./excel-to-markdown`. But if you want to save the result as a file, you would prefer running: `./excel-to-markdown > sample.md`.
 
 ## Demo
 
