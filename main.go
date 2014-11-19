@@ -5,8 +5,9 @@ import (
 	"github.com/tealeg/xlsx"
 	"fmt"
 	"os"
-	"io/ioutil"
 	"strings"
+	"github.com/codegangsta/cli"
+	"io/ioutil"
 	"sync"
 )
 
@@ -85,26 +86,47 @@ func readWriteSheet(inputFilePath, outputDirPath string) error {
 }
 
 func main() {
-	dirPath := "./test/excel"
-	d, err := ioutil.ReadDir(dirPath)
+	app := cli.NewApp()
+	app.Name = "excel-to-markdown"
+	app.Version = Version
+	app.Usage = ""
+	app.Author = "kyokomi"
+	app.Email = "kyoko1220adword@gmail.com"
+	app.Action = doMain
+	app.Flags = []cli.Flag{
+		cli.StringFlag{"input-dir,i", "", "convert target directory path", ""},
+		cli.StringFlag{"output-dir,o", "", "dist directory after convert path", ""},
+	}
+	app.Run(os.Args)
+}
+
+func doMain(c *cli.Context) {
+
+	inputDirPath := c.String("input-dir")
+	outputDirPath := c.String("output-dir")
+
+	if inputDirPath == "" || outputDirPath == "" {
+		cli.ShowAppHelp(c)
+		return
+	}
+
+	d, err := ioutil.ReadDir(inputDirPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var wg sync.WaitGroup
-
-	outputDir := "./test/build"
 	for _, file := range d {
 		if file.IsDir() {
 			continue
 		}
-		inputFilePath := strings.Join([]string{dirPath, file.Name()}, "/")
+		inputFilePath := strings.Join([]string{inputDirPath, file.Name()}, "/")
 		if !strings.HasSuffix(inputFilePath, ".xlsx") {
 			fmt.Printf("error don't xlsx file.")
 			continue
 		}
 
-		outputDirPath := strings.Join([]string{outputDir, file.Name()}, "/")
+		outputDirPath := strings.Join([]string{outputDirPath, file.Name()}, "/")
 		outputDirPath = strings.TrimSuffix(outputDirPath, ".xlsx")
 		if _, err := ioutil.ReadDir(outputDirPath); err != nil {
 			err := os.Mkdir(outputDirPath, 0755)
