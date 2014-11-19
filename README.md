@@ -10,9 +10,37 @@
  * `go get` to download the github dependency
  * `go build` to build the executable
 
+### Help
+
+```
+$ ./excel-to-markdown help
+NAME:
+   excel-to-markdown -
+
+USAGE:
+   excel-to-markdown [global options] command [command options] [arguments...]
+
+VERSION:
+   0.1.0
+
+AUTHOR:
+  kyokomi - <kyoko1220adword@gmail.com>
+
+COMMANDS:
+   help, h	Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --input-dir, -i 	convert target directory path
+   --output-dir, -o 	dist directory after convert path
+   --help, -h		show help
+   --version, -v	print the version
+```
+
 ### Running
 
-You need to put your excel file inside test/ (replace or get rid of sample.xlsx), then run `./excel-to-markdown`. But if you want to save the result as a file, you would prefer running: `./excel-to-markdown > sample.md`.
+```
+$ ./excel-to-markdown --input-dir example/excel --output-dir example/build
+```
 
 ## Demo
 
