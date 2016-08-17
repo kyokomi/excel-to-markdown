@@ -20,27 +20,26 @@ func readWriteSheet(inputFilePath, outputDirPath string) error {
 
 	for _, sheet := range xlFile.Sheets {
 		// sheet単位でfile生成
-		fmt.Println(sheet.Name)
-		writeFile := strings.Join([]string{outputDirPath, sheet.Name}, "/") + ".md"
-		f, err := os.Create(writeFile)
+		fmt.Printf("Start %s ...\n", sheet.Name)
+
+		writeFilePath := strings.Join([]string{outputDirPath, sheet.Name}, "/") + ".md"
+		f, err := os.Create(writeFilePath)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		hyou := false
 		// rowはまとめて1行にする
-		for idx, row := range sheet.Rows {
+		for rowIdx, row := range sheet.Rows {
 
-			fmt.Println(row.Cells)
-
-			if idx == 0 {
+			if rowIdx == 0 {
 				// #見出し
 				f.WriteString("# ")
 			}
 
 			text := ""
 			for _, cell := range row.Cells {
-				text += cell.String()
+				text += cell.Value
 			}
 
 			if len(text) == 0 {
@@ -52,14 +51,15 @@ func readWriteSheet(inputFilePath, outputDirPath string) error {
 
 			if len(row.Cells) >= 2 && len(row.Cells[0].Value) == 0 {
 				f.WriteString("- ")
-				f.WriteString(row.Cells[1].String())
+				idx := 1
+				f.WriteString(row.Cells[idx].Value)
 
 			} else if len(row.Cells) >= 2 {
 
 				// 表
 				for _, cell := range row.Cells {
 					f.WriteString("|")
-					f.WriteString(cell.String())
+					f.WriteString(cell.Value)
 				}
 				f.WriteString("|")
 
@@ -80,6 +80,7 @@ func readWriteSheet(inputFilePath, outputDirPath string) error {
 			}
 			f.WriteString("\n")
 		}
+		fmt.Printf("End %s => %s\n", sheet.Name, writeFilePath)
 		f.Close()
 	}
 
