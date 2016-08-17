@@ -1,14 +1,15 @@
 package main
 
 import (
-	"log"
-	"github.com/tealeg/xlsx"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"strings"
-	"github.com/codegangsta/cli"
-	"io/ioutil"
 	"sync"
+
+	"github.com/tealeg/xlsx"
+	"github.com/urfave/cli"
 )
 
 func readWriteSheet(inputFilePath, outputDirPath string) error {
@@ -94,25 +95,32 @@ func main() {
 	app.Email = "kyoko1220adword@gmail.com"
 	app.Action = doMain
 	app.Flags = []cli.Flag{
-		cli.StringFlag{"input-dir,i", "", "convert target directory path", ""},
-		cli.StringFlag{"output-dir,o", "", "dist directory after convert path", ""},
+		cli.StringFlag{
+			Name:  "input-dir,i",
+			Value: "",
+			Usage: "convert target directory path",
+		},
+		cli.StringFlag{
+			Name:  "output-dir,o",
+			Value: "",
+			Usage: "dist directory after convert path",
+		},
 	}
 	app.Run(os.Args)
 }
 
-func doMain(c *cli.Context) {
-
+func doMain(c *cli.Context) error {
 	inputDirPath := c.String("input-dir")
 	outputDirPath := c.String("output-dir")
 
 	if inputDirPath == "" || outputDirPath == "" {
 		cli.ShowAppHelp(c)
-		return
+		return nil
 	}
 
 	d, err := ioutil.ReadDir(inputDirPath)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var wg sync.WaitGroup
@@ -122,7 +130,7 @@ func doMain(c *cli.Context) {
 		}
 		inputFilePath := strings.Join([]string{inputDirPath, file.Name()}, "/")
 		if !strings.HasSuffix(inputFilePath, ".xlsx") {
-			fmt.Printf("error don't xlsx file.")
+			fmt.Println("error don't xlsx file.")
 			continue
 		}
 
@@ -131,7 +139,7 @@ func doMain(c *cli.Context) {
 		if _, err := ioutil.ReadDir(outputDirPath); err != nil {
 			err := os.Mkdir(outputDirPath, 0755)
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 		}
 
@@ -142,4 +150,6 @@ func doMain(c *cli.Context) {
 		}(inputFilePath)
 	}
 	wg.Wait()
+
+	return nil
 }
