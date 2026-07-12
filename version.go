@@ -1,3 +1,4 @@
 package main
 
-const Version string = "0.1.1"
+// Version はビルド時に goreleaser の ldflags で上書きされる
+var Version = "0.2.0"
