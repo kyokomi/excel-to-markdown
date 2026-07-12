@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -40,14 +41,21 @@ func writeSheetMarkdown(sheet *xlsx.Sheet, writeFilePath string) error {
 		return err
 	}
 
-	if err := writeSheetRows(sheet, f); err != nil {
+	// bufio.Writerのエラーは内部に保持されFlushで回収できるため、
+	// 各WriteStringの戻り値は個別にチェックしない
+	w := bufio.NewWriter(f)
+	if err := writeSheetRows(sheet, w); err != nil {
+		f.Close()
+		return err
+	}
+	if err := w.Flush(); err != nil {
 		f.Close()
 		return err
 	}
 	return f.Close()
 }
 
-func writeSheetRows(sheet *xlsx.Sheet, f *os.File) error {
+func writeSheetRows(sheet *xlsx.Sheet, w *bufio.Writer) error {
 	hyou := false
 	rowIdx := 0
 	// rowはまとめて1行にする
@@ -69,47 +77,47 @@ func writeSheetRows(sheet *xlsx.Sheet, f *os.File) error {
 
 		if rowIdx == 0 {
 			// #見出し
-			f.WriteString("# ")
+			w.WriteString("# ")
 		}
 
 		text := strings.Join(cells, "")
 
 		if len(text) == 0 {
 			hyou = false
-			f.WriteString("\n")
-			f.WriteString("## ")
+			w.WriteString("\n")
+			w.WriteString("## ")
 			return nil
 		}
 
 		if len(cells) >= 2 && len(cells[0]) == 0 {
-			f.WriteString("- ")
-			f.WriteString(cells[1])
+			w.WriteString("- ")
+			w.WriteString(cells[1])
 
 		} else if len(cells) >= 2 {
 
 			// 表
 			for _, cell := range cells {
-				f.WriteString("|")
-				f.WriteString(cell)
+				w.WriteString("|")
+				w.WriteString(cell)
 			}
-			f.WriteString("|")
+			w.WriteString("|")
 
 			if !hyou {
-				f.WriteString("\n")
-				f.WriteString(strings.Repeat("| --- ", len(cells)))
-				f.WriteString("|")
+				w.WriteString("\n")
+				w.WriteString(strings.Repeat("| --- ", len(cells)))
+				w.WriteString("|")
 				hyou = true
 			}
 
 		} else if strings.HasPrefix(cells[0], "http") {
-			f.WriteString(fmt.Sprintf("![%s](%s)", cells[0], cells[0]))
-			f.WriteString("\n")
+			w.WriteString(fmt.Sprintf("![%s](%s)", cells[0], cells[0]))
+			w.WriteString("\n")
 		} else {
 			// その他
-			f.WriteString(text)
-			f.WriteString("\n")
+			w.WriteString(text)
+			w.WriteString("\n")
 		}
-		f.WriteString("\n")
+		w.WriteString("\n")
 		return nil
 	})
 }
