@@ -172,13 +172,13 @@ func doMain(ctx context.Context, cmd *cli.Command) error {
 		}
 
 		inputFilePath := filepath.Join(inputDirPath, entry.Name())
-		outputDirPath := filepath.Join(outputDirPath, strings.TrimSuffix(entry.Name(), ".xlsx"))
-		if err := os.MkdirAll(outputDirPath, 0755); err != nil {
+		fileOutputDirPath := filepath.Join(outputDirPath, strings.TrimSuffix(entry.Name(), ".xlsx"))
+		if err := os.MkdirAll(fileOutputDirPath, 0755); err != nil {
 			return err
 		}
 
 		g.Go(func() error {
-			return readWriteSheet(inputFilePath, outputDirPath)
+			return readWriteSheet(inputFilePath, fileOutputDirPath)
 		})
 	}
 	return g.Wait()
