@@ -1,93 +1,53 @@
 # Excel-to-Markdown
 
-====================================
+[![CI](https://github.com/kyokomi/excel-to-markdown/actions/workflows/ci.yml/badge.svg)](https://github.com/kyokomi/excel-to-markdown/actions/workflows/ci.yml)
 
 ## Description
 
-used at GitHub, the format is GitHub-Flavoured Markdown; see:
+Convert Excel (`.xlsx`) files to GitHub-Flavored Markdown; see:
 
-https://help.github.com/articles/github-flavored-markdown/
+https://docs.github.com/en/get-started/writing-on-github
+
+## Installation
+
+```
+$ go install github.com/kyokomi/excel-to-markdown@latest
+```
+
+Or download a pre-built binary from [Releases](https://github.com/kyokomi/excel-to-markdown/releases).
 
 ## Usage
-
-### Building
-
- * `export GOPATH=<CURRENT_PATH>`
- * `go get` to download the github dependency
- * `go build` to build the executable
 
 ### Help
 
 ```
-$ ./excel-to-markdown help
+$ excel-to-markdown --help
 NAME:
-   excel-to-markdown -
+   excel-to-markdown - convert Excel (.xlsx) files to GitHub-Flavored Markdown
 
 USAGE:
-   excel-to-markdown [global options] command [command options] [arguments...]
+   excel-to-markdown [global options]
 
 VERSION:
-   0.1.0
+   0.2.0
 
 AUTHOR:
-  kyokomi - <kyoko1220adword@gmail.com>
-
-COMMANDS:
-   help, h	Shows a list of commands or help for one command
+   kyokomi <kyoko1220adword@gmail.com>
 
 GLOBAL OPTIONS:
-   --input-dir, -i 	convert target directory path
-   --output-dir, -o 	dist directory after convert path
-   --help, -h		show help
-   --version, -v	print the version
+   --input-dir string, -i string   convert target directory path
+   --output-dir string, -o string  dist directory after convert path
+   --help, -h                      show help
+   --version, -v                   print the version
 ```
 
 ### Running
 
 ```
-$ ./excel-to-markdown --input-dir example/excel --output-dir example/build
+$ excel-to-markdown --input-dir example/excel --output-dir example/build
 ```
 
-## Demo
-
-### Input `.xlsx`
-
-[sample](https://github.com/kyokomi/excel-to-markdown/blob/master/example/excel/sample.xlsx)
-
-![/excel-to-markdown_demo1.png](https://dl.dropbox.com/u/49084962/excel-to-markdown_demo1.png)
-
-### Output `.md`
-
-[sample](https://github.com/kyokomi/excel-to-markdown/blob/master/example/build/sample/sheet1.md)
-
-```
-# GoでExcelをMarkdownにする
-
-
-## 目的とゴール
-
-まずExcelで仕様を管理しているが、変更が多すぎるわりに変更管理がちゃんとできていない。レビューの体制もちゃんと取れないという問題がある。
-
-エンジニアも見やすく、差分管理も楽なMarkdownで書いてくれれば一番良いのだが、この手の新しい取り組みは、よほど儲かっていて時間や人に余裕がある会社しかなかなかできないと思われる。
-
-（弊社がまさにそれで、そんなことやってる場合があったら〜とよく一蹴される。やったほうが後々の効率は良くなるという説明も無駄に等しい）
-
-となると、こちらから歩みよるしかなくて、Excelがつかいたいのは譲るが文章のフォーマットは整えてもらいそれをMarkdownに変換することにした。
-
-
-## メリット
-
-- 変更履歴を自動的に管理できるようになる
-- 仕様書もレビューできるようになる
-
-## デメリット
-
-- フォーマットが矯正されて少しExclelが使いにくくなる
-- 図やシェイプなどが使えない（使ってもいいけどMarkdown変換できない）
-- 色等の視覚情報での説明ができない
-- 画像のリンクを置くのがめんどくさそう
-
-## 対応が必要なフォーマット
+## Format Rules
 
 |No|フォーマット|ルール|
 | --- | --- | --- |
@@ -95,13 +55,18 @@ $ ./excel-to-markdown --input-dir example/excel --output-dir example/build
 |2|区切りの見出し|空白行の後が##見出し|
 |3|リスト表示|1セル目が空白|
 |4|表形式の表示|2セル以上の利用|
-|5|画像の表示|先頭「http〜の」、先頭「/」とかパスっぽいやつ|
+|5|画像の表示|先頭が「http〜」|
 |6|本文（通常）|上記以外|
 
-## ゴーファー君
+## Demo
 
-![https://dl.dropbox.com/u/49084962/gopher.png](https://dl.dropbox.com/u/49084962/gopher.png)
-```
+### Input `.xlsx`
+
+[example/excel/sample.xlsx](https://github.com/kyokomi/excel-to-markdown/blob/master/example/excel/sample.xlsx)
+
+### Output `.md`
+
+[example/build/sample/sheet1.md](https://github.com/kyokomi/excel-to-markdown/blob/master/example/build/sample/sheet1.md)
 
 ## Author
 
@@ -110,4 +75,3 @@ $ ./excel-to-markdown --input-dir example/excel --output-dir example/build
 ## License
 
 [MIT](https://github.com/kyokomi/excel-to-markdown/blob/master/LICENSE)
-
