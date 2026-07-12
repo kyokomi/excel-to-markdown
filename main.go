@@ -1,15 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
+	"path/filepath"
 	"strings"
-	"sync"
 
-	"github.com/tealeg/xlsx"
-	"github.com/urfave/cli"
+	"github.com/tealeg/xlsx/v3"
+	"github.com/urfave/cli/v3"
+	"golang.org/x/sync/errgroup"
 )
 
 func readWriteSheet(inputFilePath, outputDirPath string) error {
@@ -22,135 +22,156 @@ func readWriteSheet(inputFilePath, outputDirPath string) error {
 		// sheet単位でfile生成
 		fmt.Printf("Start %s ...\n", sheet.Name)
 
-		writeFilePath := strings.Join([]string{outputDirPath, sheet.Name}, "/") + ".md"
-		f, err := os.Create(writeFilePath)
-		if err != nil {
-			log.Fatal(err)
+		writeFilePath := filepath.Join(outputDirPath, sheet.Name+".md")
+		if err := writeSheetMarkdown(sheet, writeFilePath); err != nil {
+			return err
 		}
+		sheet.Close()
 
-		hyou := false
-		// rowはまとめて1行にする
-		for rowIdx, row := range sheet.Rows {
-
-			if rowIdx == 0 {
-				// #見出し
-				f.WriteString("# ")
-			}
-
-			text := ""
-			for _, cell := range row.Cells {
-				text += cell.Value
-			}
-
-			if len(text) == 0 {
-				hyou = false
-				f.WriteString("\n")
-				f.WriteString("## ")
-				continue
-			}
-
-			if len(row.Cells) >= 2 && len(row.Cells[0].Value) == 0 {
-				f.WriteString("- ")
-				idx := 1
-				f.WriteString(row.Cells[idx].Value)
-
-			} else if len(row.Cells) >= 2 {
-
-				// 表
-				for _, cell := range row.Cells {
-					f.WriteString("|")
-					f.WriteString(cell.Value)
-				}
-				f.WriteString("|")
-
-				if !hyou {
-					f.WriteString("\n")
-					f.WriteString(strings.Repeat("| --- ", len(row.Cells)))
-					f.WriteString("|")
-					hyou = true
-				}
-
-			} else if strings.HasPrefix(row.Cells[0].Value, "http") {
-				f.WriteString(fmt.Sprintf("![%s](%s)", row.Cells[0].Value, row.Cells[0].Value))
-				f.WriteString("\n")
-			} else {
-				// その他
-				f.WriteString(text)
-				f.WriteString("\n")
-			}
-			f.WriteString("\n")
-		}
 		fmt.Printf("End %s => %s\n", sheet.Name, writeFilePath)
-		f.Close()
 	}
 
 	return nil
 }
 
-func main() {
-	app := cli.NewApp()
-	app.Name = "excel-to-markdown"
-	app.Version = Version
-	app.Usage = ""
-	app.Author = "kyokomi"
-	app.Email = "kyoko1220adword@gmail.com"
-	app.Action = doMain
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "input-dir,i",
-			Value: "",
-			Usage: "convert target directory path",
-		},
-		cli.StringFlag{
-			Name:  "output-dir,o",
-			Value: "",
-			Usage: "dist directory after convert path",
-		},
-	}
-	app.Run(os.Args)
-}
-
-func doMain(c *cli.Context) error {
-	inputDirPath := c.String("input-dir")
-	outputDirPath := c.String("output-dir")
-
-	if inputDirPath == "" || outputDirPath == "" {
-		cli.ShowAppHelp(c)
-		return nil
-	}
-
-	d, err := ioutil.ReadDir(inputDirPath)
+func writeSheetMarkdown(sheet *xlsx.Sheet, writeFilePath string) error {
+	f, err := os.Create(writeFilePath)
 	if err != nil {
 		return err
 	}
 
-	var wg sync.WaitGroup
-	for _, file := range d {
-		if file.IsDir() {
-			continue
-		}
-		inputFilePath := strings.Join([]string{inputDirPath, file.Name()}, "/")
-		if !strings.HasSuffix(inputFilePath, ".xlsx") {
-			fmt.Println("error don't xlsx file.")
-			continue
-		}
-
-		outputDirPath := strings.Join([]string{outputDirPath, file.Name()}, "/")
-		outputDirPath = strings.TrimSuffix(outputDirPath, ".xlsx")
-		if _, err := ioutil.ReadDir(outputDirPath); err != nil {
-			err := os.Mkdir(outputDirPath, 0755)
-			if err != nil {
-				return err
-			}
-		}
-
-		wg.Add(1)
-		go func(inputFilePath string) {
-			readWriteSheet(inputFilePath, outputDirPath)
-			wg.Done()
-		}(inputFilePath)
+	if err := writeSheetRows(sheet, f); err != nil {
+		f.Close()
+		return err
 	}
-	wg.Wait()
+	return f.Close()
+}
 
-	return nil
+func writeSheetRows(sheet *xlsx.Sheet, f *os.File) error {
+	hyou := false
+	rowIdx := 0
+	// rowはまとめて1行にする
+	return sheet.ForEachRow(func(row *xlsx.Row) error {
+		defer func() { rowIdx++ }()
+
+		var cells []string
+		if err := row.ForEachCell(func(cell *xlsx.Cell) error {
+			cells = append(cells, cell.Value)
+			return nil
+		}); err != nil {
+			return err
+		}
+		// xlsx v3はシートの最大列数まで空セルを補完するため、
+		// 旧版(v1)の「行に存在するセルまで」の挙動に合わせて末尾の空セルを除去する
+		for len(cells) > 0 && cells[len(cells)-1] == "" {
+			cells = cells[:len(cells)-1]
+		}
+
+		if rowIdx == 0 {
+			// #見出し
+			f.WriteString("# ")
+		}
+
+		text := strings.Join(cells, "")
+
+		if len(text) == 0 {
+			hyou = false
+			f.WriteString("\n")
+			f.WriteString("## ")
+			return nil
+		}
+
+		if len(cells) >= 2 && len(cells[0]) == 0 {
+			f.WriteString("- ")
+			f.WriteString(cells[1])
+
+		} else if len(cells) >= 2 {
+
+			// 表
+			for _, cell := range cells {
+				f.WriteString("|")
+				f.WriteString(cell)
+			}
+			f.WriteString("|")
+
+			if !hyou {
+				f.WriteString("\n")
+				f.WriteString(strings.Repeat("| --- ", len(cells)))
+				f.WriteString("|")
+				hyou = true
+			}
+
+		} else if strings.HasPrefix(cells[0], "http") {
+			f.WriteString(fmt.Sprintf("![%s](%s)", cells[0], cells[0]))
+			f.WriteString("\n")
+		} else {
+			// その他
+			f.WriteString(text)
+			f.WriteString("\n")
+		}
+		f.WriteString("\n")
+		return nil
+	})
+}
+
+func main() {
+	cmd := &cli.Command{
+		Name:    "excel-to-markdown",
+		Version: Version,
+		Usage:   "convert Excel (.xlsx) files to GitHub-Flavored Markdown",
+		Authors: []any{"kyokomi <kyoko1220adword@gmail.com>"},
+		Action:  doMain,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "input-dir",
+				Aliases: []string{"i"},
+				Usage:   "convert target directory path",
+			},
+			&cli.StringFlag{
+				Name:    "output-dir",
+				Aliases: []string{"o"},
+				Usage:   "dist directory after convert path",
+			},
+		},
+	}
+	if err := cmd.Run(context.Background(), os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+}
+
+func doMain(ctx context.Context, cmd *cli.Command) error {
+	inputDirPath := cmd.String("input-dir")
+	outputDirPath := cmd.String("output-dir")
+
+	if inputDirPath == "" || outputDirPath == "" {
+		return cli.ShowRootCommandHelp(cmd)
+	}
+
+	entries, err := os.ReadDir(inputDirPath)
+	if err != nil {
+		return err
+	}
+
+	g, _ := errgroup.WithContext(ctx)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), ".xlsx") {
+			fmt.Printf("skip %s: not a .xlsx file\n", entry.Name())
+			continue
+		}
+
+		inputFilePath := filepath.Join(inputDirPath, entry.Name())
+		outputDirPath := filepath.Join(outputDirPath, strings.TrimSuffix(entry.Name(), ".xlsx"))
+		if err := os.MkdirAll(outputDirPath, 0755); err != nil {
+			return err
+		}
+
+		g.Go(func() error {
+			return readWriteSheet(inputFilePath, outputDirPath)
+		})
+	}
+	return g.Wait()
 }
